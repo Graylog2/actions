@@ -18,7 +18,6 @@ runs:
       uses: "actions/github-script@v6"
       id: "check-presence"
       with:
-        github-token: "${{ inputs.gh-token || ''}}"
         script: |
           const fs = require('node:fs');
           const path = require('node:path');
