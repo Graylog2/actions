@@ -1,0 +1,30 @@
+name: "Project CLI"
+description: "Download and install the graylog-project CLI"
+author: "Graylog, Inc. <hello@graylog.com>"
+
+inputs:
+  cli-version:
+    description: "Version of the graylog-project CLI command"
+    required: true
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Install graylog-project CLI (version: ${{ inputs.cli-version }})"
+      shell: "bash"
+      run: |
+        v="${{ inputs.cli-version }}"
+        url="https://github.com/Graylog2/graylog-project-cli/releases/download/$v"
+
+        if [ "$v" = "latest" ]; then
+          # The asset download URL for the latest release is slightly different
+          url="https://github.com/Graylog2/graylog-project-cli/releases/latest/download"
+        fi
+
+        wget -q -O /usr/local/bin/graylog-project "$url/graylog-project.linux"
+        chmod +x /usr/local/bin/graylog-project
+        # Script compatibility with old Jenkins environments
+        ln -s /usr/local/bin/graylog-project /usr/local/bin/graylog-project-cli
+
+        graylog-project version --disable-update-check

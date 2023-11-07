@@ -1,0 +1,19 @@
+name: "Test project-cli"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: "actions/checkout@v3"
+
+      - name: "Project CLI"
+        uses: "./project-cli"
+
+      - name: "Verify project CLI"
+        shell: "bash"
+        run: |
+          graylog-project version --disable-update-check

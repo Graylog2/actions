@@ -1,0 +1,110 @@
+name: "Changelog Check"
+description: "Run a changelog check"
+author: "Graylog, Inc. <hello@graylog.com>"
+
+inputs:
+  gh-token:
+    description: "GitHub access token"
+    required: true
+  cli-version:
+    description: "Version of the graylog-project CLI command"
+    required: true
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Check changelog presence"
+      uses: "actions/github-script@v6"
+      id: "check-presence"
+      with:
+        github-token: "${{ inputs.gh-token }}"
+        script: |
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const pr = context.payload.pull_request;
+          const author = pr.user.login;
+
+          const setSummary = (title, text, files = []) => {
+            core.summary.addHeading(title, 2);
+            core.summary.addRaw(`<p>${text}</p>`, true);
+
+            if (files.length > 0) {
+              core.summary.addRaw(`<p>Files:</p>`);
+              core.summary.addList(files.map(f => `<code>${f}</code>`));
+            }
+
+            core.summary.write({ overwrite: true });
+          };
+
+          if (author.includes('dependabot') || author.includes('github-actions')) {
+            setSummary('Changelog Check Skipped', `Check skipped because the PR author is a bot user. (author: ${author})`);
+            return;
+          }
+
+          if (pr.body.includes('/nocl')) {
+            setSummary('Changelog Check Skipped', 'Check skipped because of /nocl flag.');
+            return;
+          }
+
+          const owner = pr.base.repo.owner.login;
+          const repo = pr.base.repo.name;
+
+          const baseRef = `${pr.base.repo.owner.login}:${pr.base.sha}`;
+          const headRef = `${pr.head.repo.owner.login}:${pr.head.sha}`;
+
+          console.log(`Getting changed files for ${owner}/${repo}: ${baseRef}...${headRef}`);
+
+          const response = await github.rest.repos.compareCommitsWithBasehead({
+            owner: owner,
+            repo: repo,
+            basehead: `${baseRef}...${headRef}`,
+          });
+
+          const clFiles = response.data.files
+            .filter(f => f.filename.startsWith('changelog/'))
+            .filter(f => f.status !== 'removed')
+            .map(f => f.filename);
+
+          if (clFiles.length === 0) {
+            const msg = 'The PR does not contain a changelog entry file.';
+            setSummary('Failure', msg);
+            core.setFailed(msg);
+          } else {
+            setSummary('Success', 'At least one changelog entry file is present.', clFiles);
+
+            const clFilesPath = path.join(process.env.RUNNER_TEMP, 'changelog-files');
+
+            fs.mkdirSync(clFilesPath, 0o700);
+
+            core.setOutput('changelog_path', clFilesPath);
+
+            clFiles.forEach(async (file) => {
+              const outputPath = path.join(clFilesPath, path.basename(file));
+
+              console.log(`Downloading ${file} into ${outputPath}`);
+
+              const response = await github.rest.repos.getContent({
+                owner: owner,
+                repo: repo,
+                path: file,
+                ref: pr.head.sha,
+              });
+
+              const text = Buffer.from(response.data.content, 'base64').toString('utf-8');
+
+              fs.writeFileSync(outputPath, text, {mode: 0o600});
+            });
+          }
+
+    - name: "Install graylog-project CLI (version: ${{ inputs.cli-version }})"
+      uses: "Graylog2/actions/project-cli@main"
+      with:
+        cli-version: "${{ inputs.cli-version }}"
+
+    - name: "Run changelog linter"
+      if: steps.check-presence.outputs.changelog_path
+      shell: "bash"
+      run: |
+        graylog-project changelog lint --strict ${{ steps.check-presence.outputs.changelog_path }}
