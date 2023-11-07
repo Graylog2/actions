@@ -42,7 +42,8 @@ runs:
             return;
           }
 
-          if (pr.body.includes('/nocl')) {
+          const body = pr.body || "";
+          if (body.includes('/nocl')) {
             setSummary('Changelog Check Skipped', 'Check skipped because of /nocl flag.');
             return;
           }
