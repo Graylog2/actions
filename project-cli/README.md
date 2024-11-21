@@ -26,3 +26,4 @@ jobs:
 ### Optional Inputs
 
 - `cli-version`: [graylog-project-cli](https://github.com/Graylog2/graylog-project-cli) version. (default: `latest`, example: `0.40.0`)
+- `reuse-installed`: Don't re-install the CLI if it's already installed.
