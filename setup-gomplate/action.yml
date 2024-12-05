@@ -1,0 +1,26 @@
+name: "Gomplate"
+description: "Download and install the gomplate tool"
+author: "Graylog, Inc. <hello@graylog.com>"
+
+inputs:
+  version:
+    description: "Version of the gomplate command"
+    required: true
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Download and install ${{ inputs.version }}"
+      shell: "bash"
+      run: |
+        tag_name="v${{ inputs.version }}"
+
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          tag_name="$(gh release -R "hairyhenderson/gomplate" view --json "tagName" | jq -r '.tagName')"
+        fi
+
+        gh release -R "hairyhenderson/gomplate" download "$tag_name" \
+          -O "/usr/local/bin/gomplate" \
+          -p "gomplate_linux-amd64"
+        chmod +x "/usr/local/bin/gomplate"
