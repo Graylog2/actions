@@ -17,12 +17,12 @@ runs:
     - name: "Check if graylog-project CLI is already installed"
       id: "check-presence"
       if: "inputs.reuse-installed"
-      continue-on-error: true
       shell: "bash"
-      run: "graylog-project version --disable-update-check"
+      run: |
+        echo "status=$(command -v graylog-project || echo "missing")" | tee -a "$GITHUB_OUTPUT"
 
     - name: "Install graylog-project CLI (version: ${{ inputs.cli-version }})"
-      if: "inputs.reuse-installed == false || steps.check-presence.outcome != 'success'"
+      if: "inputs.reuse-installed == false || steps.check-presence.outputs.status == 'missing'"
       shell: "bash"
       run: |
         v="${{ inputs.cli-version }}"
