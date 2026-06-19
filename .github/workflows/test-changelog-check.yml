@@ -11,6 +11,6 @@ jobs:
       - uses: "actions/checkout@v6"
 
       - name: "Changelog check"
-        uses: "./changelog-check@main"
+        uses: "./changelog-check"
         with:
           gh-token: "${{ secrets.GITHUB_TOKEN }}"
