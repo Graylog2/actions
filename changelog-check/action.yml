@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: "Check changelog presence"
-      uses: "actions/github-script@v6"
+      uses: "actions/github-script@v9"
       id: "check-presence"
       with:
         script: |
